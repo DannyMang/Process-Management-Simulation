@@ -72,7 +72,7 @@ bool createProgram(const string &filename, vector<Instruction> &program) {
 
     file.open(filename.c_str());
 
-    if(!file.is_open()) {
+    if(!file.is_open()) {   
         cout << "Error oopening file " << filename << endl;
         return false;
     }
@@ -140,6 +140,7 @@ bool createProgram(const string &filename, vector<Instruction> &program) {
 void set(int value) {
     // TODO: Implement
     // 1. Set the CPU value to the passed-in value
+    cpu.value = value;
 }
 
 
@@ -147,6 +148,7 @@ void set(int value) {
 void add(int value) {
     // TODO: Implement
     // 1. Add the passed-in value to the CPU value
+    cpu.add(value);
 }
 
 
@@ -154,6 +156,7 @@ void add(int value) {
 void decrement(int value) {
     // TODO: Implement
     // 1. Subtract the integer value from the CPU value;
+    cpu.value -= value;
 }
 
 
