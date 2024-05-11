@@ -90,7 +90,7 @@ bool createProgram(const string &filename, vector<Instruction> &program) {
 
             stringstream argStream(instruction.stringArg);
 
-            swith(instruction.operation) {
+            switch(instruction.operation) {
                 case 'S': // Integer argument
                 case 'A': // Integer argument
                 case 'D': // Integer argument
@@ -209,10 +209,22 @@ void end() {
 void fork(int value) {
     // TODO: Implement
     // 1. Get a free PCB index (pcbTable.size())
+    int freePCB = -1;
+    for (int i = 0; i < 10; ++i) {
+        if (pcbEntry[i].processId == -1) {
+            freePCB = i;
+            break;
+        }
+    }
 
     // 2. Get the PCB entry for the current running process
+    pcbEntry &runningProcess = pcbEntry[runningState];
 
     // 3. Ensure the passed-in value is not out of bounds
+    if (value < 0 || value >= cpu.pProgram->size()) {
+        cout << "Invalid fork value." << endl;
+        return;
+    }
 
     // 4. Populate the PCB entry obtained in #1
     //      a. Set the process ID to the PCB index obtained in #1
@@ -223,10 +235,21 @@ void fork(int value) {
     //      e. Set the priority to the same as the parent process's priority
     //      f. Set the state to the ready state
     //      g. Set the start time to the current timestamp
+    pcbEntry[freePCB].processId = freePCB;
+    pcbEntry[freePCB].parentProcessId = pcbEntry[runningState].processId;
+    pcbEntry[freePCB].programCounter = cpu.programCounter;
+    pcbEntry[freePCB].value = cpu.value;
+    pcbEntry[freePCB].priority = pcbEntry[runningState].priority;
+    pcbEntry[freePCB].state = STATE_READY;
+    pcbEntry[freePCB].startTime = timestamp;
+    pcbEntry[freePCB].timeUsed = 0;
+
 
     // 5. Add the pcb index to the ready queue
+    readyState.push_back(freePCB);
 
     // 6. Increment the cpu's program counter by the value read in #3
+    cpu.programCounter += value;
 
 }
 
