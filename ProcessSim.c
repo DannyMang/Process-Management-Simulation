@@ -175,7 +175,7 @@ void schedule() {
     // 3. If we were able to get a new process to run:
     //      a. Mark the processing as running (update the new process's PCB state)
     //      b. Update the CPU structure with the PCB entry details (program, program counter, value, etc.)
-    else: 
+    else{ 
         new_process = readyState.pop_front(); 
         new_process.state = STATE_RUNNING;
 
@@ -183,7 +183,7 @@ void schedule() {
         cpu.programCounter = new_process.programCounter;
         cpu.value = new_process.value;
         runningState = new_process.processId;
-
+    }
 }
 
 
@@ -191,7 +191,7 @@ void schedule() {
 void block() {
     // TODO: Implement
     // 1. Add the PCB index of the running process (stored in runningState) to the blocked queue
-    if runningState != -1 {
+    if (runningState != -1) {
         blockedState.push_back(runningState);
     
 
@@ -199,13 +199,13 @@ void block() {
     //      a. Change the PCB's state to blocked
     //      b. Store the CPU program counter in the PCB's program counter
     //      c. Store the CPU's value in the PCB's value
-    pcbEntry[runningState].state = STATE_BLOCKED;
-    pcbEntry[runningState].programCounter = cpu.programCounter;
-    pcbEntry[runningState].value = cpu.value
+        pcbEntry[runningState].state = STATE_BLOCKED;
+        pcbEntry[runningState].programCounter = cpu.programCounter;
+        pcbEntry[runningState].value = cpu.value;
     
 
     // 3. Update the running state to -1 (basically mark no process as running)
-    runningState = -1;
+        runningState = -1;
     }
 
     // - Note that a new process will be chosen to run later (via the Q command code calling the schedule() function)
