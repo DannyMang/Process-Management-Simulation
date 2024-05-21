@@ -355,9 +355,14 @@ void unblock() {
     //      a. Remove a process form the front of the blocked queue.
     //      b. Add the process to the ready queue.
     //      c. Change the state of the process to ready (update its PCB entry).
+    if (!blockedState.empty()) {
+        int unblockedProcess = blockedState.pop_front();
+        readyState.push_back(unblockedProcess);
+        pcbEntry[unblockedProcess].state = STATE_READY;
+    }
 
     // 2. Call the schedule() function to give an unblocked process a chance to run (if possible).
-
+    schedule();
 }
 
 
