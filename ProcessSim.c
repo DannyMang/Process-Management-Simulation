@@ -287,13 +287,20 @@ void fork(int value) {
 void replace(string &argument) {
     // TODO: Implement
     // 1. Clear the CPU's program (cpu.pProgram->clear())
+    cpu.pProgram->clear();
 
     // 2. Use createProgram() to read in the filename specified by argurment into the CPU (*cpu.pProgram)
     //      a. Consider what to do if createProgram fails. I printed an error, incremented the cpu program
     //          counter and then returned.
     //          - Note that createProgram can fail if the file could not be opened or did not exist
+    if (!createProgram(argument, *cpu.pProgram)) {
+        cout << "Failed to load program from file: " << argument << endl;
+        ++cpu.programCounter;
+        return;
+    }
 
     // 3. Set the program counter to 0
+    cpu.programCounter = 0;
 
 }
 
