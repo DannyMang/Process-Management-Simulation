@@ -148,7 +148,7 @@ void set(int value) {
 void add(int value) {
     // TODO: Implement
     // 1. Add the passed-in value to the CPU value
-    cpu.add(value);
+    cpu.value += value;
 }
 
 
