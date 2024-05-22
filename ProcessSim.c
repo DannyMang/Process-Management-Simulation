@@ -31,7 +31,8 @@ public:
 enum State {
     STATE_READY,
     STATE_RUNNING,
-    STATE_BLOCKED
+    STATE_BLOCKED,
+    STATE_TERMINATED
 };
 
 class PcbEntry {
@@ -66,6 +67,15 @@ double cumulativeTimeDiff = 0;
 int numTerminatedProcesses = 0;
 
 
+string trim(const string &str) { //Helper function to trim whitespace from a string, used in createProgram
+    size_t first = str.find_first_not_of(' ');
+    if (string::npos == first) {
+        return "";
+    }
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, last - first + 1);
+}
+
 bool createProgram(const string &filename, vector<Instruction> &program) {
     ifstream file;
     int lineNum = 0;
@@ -73,7 +83,7 @@ bool createProgram(const string &filename, vector<Instruction> &program) {
     file.open(filename.c_str());
 
     if(!file.is_open()) {   
-        cout << "Error oopening file " << filename << endl;
+        cout << "Error opening file " << filename << endl;
         return false;
     }
 
@@ -81,7 +91,7 @@ bool createProgram(const string &filename, vector<Instruction> &program) {
         string line;
         getline(file, line);
         
-        trim(line);
+        line = trim(line);
 
         if(line.size() > 0) {
             Instruction instruction;
@@ -176,13 +186,14 @@ void schedule() {
     //      a. Mark the processing as running (update the new process's PCB state)
     //      b. Update the CPU structure with the PCB entry details (program, program counter, value, etc.)
     else{ 
-        new_process = readyState.pop_front(); 
-        new_process.state = STATE_RUNNING;
+        int new_process = readyState.front();
+        readyState.pop_front();
+        pcbEntry[new_process].state = STATE_RUNNING;
 
-        cpu.pProgram = &(new_process.program);
-        cpu.programCounter = new_process.programCounter;
-        cpu.value = new_process.value;
-        runningState = new_process.processId;
+        cpu.pProgram = &(pcbEntry[new_process].program);
+        cpu.programCounter = pcbEntry[new_process].programCounter;
+        cpu.value = pcbEntry[new_process].value;
+        runningState = new_process;
     }
 }
 
@@ -216,15 +227,21 @@ void block() {
 // Implements the E operation
 void end() {
     // TODO: Implement
-    // 1. Get the PCB entry of the running process
-    pcbEntry &runningProcess = pcbEntry[runningState];
 
+    // Return if no process is running
+    if (runningState == -1) {
+        cout << "No processes are running" << endl;
+        return;
+    }
+
+    // 1. Get the PCB entry of the running process
+    PcbEntry &runningProcess = pcbEntry[runningState];
 
     // 2. Update the cumulative time difference (increment it by timestamp + 1 - start time of the process)
-    cumulativeTimeDiff += timestamp + 1 - runningProcess.startTime;
+   cumulativeTimeDiff += timestamp + 1 - runningProcess.startTime;
 
     // 3. Increment the number of terminated processes
-    pcbEntry[runningState].state = STATE_TERMINATED;
+    runningProcess.state = STATE_TERMINATED;
     numTerminatedProcesses++;
 
     // 4. Update the running state to -1 (basically mark no process as running)
@@ -247,7 +264,7 @@ void fork(int value) {
     }
 
     // 2. Get the PCB entry for the current running process
-    pcbEntry &runningProcess = pcbEntry[runningState];
+    PcbEntry &runningProcess = pcbEntry[runningState];
 
     // 3. Ensure the passed-in value is not out of bounds
     if (value < 0 || value >= cpu.pProgram->size()) {
@@ -265,10 +282,10 @@ void fork(int value) {
     //      f. Set the state to the ready state
     //      g. Set the start time to the current timestamp
     pcbEntry[freePCB].processId = freePCB;
-    pcbEntry[freePCB].parentProcessId = pcbEntry[runningState].processId;
+    pcbEntry[freePCB].parentProcessId = runningProcess.processId;
     pcbEntry[freePCB].programCounter = cpu.programCounter;
     pcbEntry[freePCB].value = cpu.value;
-    pcbEntry[freePCB].priority = pcbEntry[runningState].priority;
+    pcbEntry[freePCB].priority = runningProcess.priority;
     pcbEntry[freePCB].state = STATE_READY;
     pcbEntry[freePCB].startTime = timestamp;
     pcbEntry[freePCB].timeUsed = 0;
@@ -363,7 +380,8 @@ void unblock() {
     //      b. Add the process to the ready queue.
     //      c. Change the state of the process to ready (update its PCB entry).
     if (!blockedState.empty()) {
-        int unblockedProcess = blockedState.pop_front();
+        int unblockedProcess = blockedState.front();
+        blockedState.pop_front();
         readyState.push_back(unblockedProcess);
         pcbEntry[unblockedProcess].state = STATE_READY;
     }
@@ -414,33 +432,31 @@ int runProcessManager(int fileDescriptor) {
             // Assume the parent process exited, breaking the pipe.
             break;
         }
-    }
-
-
-    // TODO: Write a switch statement
-    switch(ch) {
-        case 'Q': 
-            quantum();    
-            break;
-        case 'U':
-            cout << "You entered U" << endl;
-            break;
-        case 'P':
-            cout << "You entered P" << endl;
-            break;
-        default:
-            cout << "You entered an invalid character!" << endl;
-    }
-
+        // TODO: Write a switch statement
+        switch(ch) {
+            case 'Q': 
+                quantum();    
+                break;
+            case 'U':
+                unblock();
+                break;
+            case 'P':
+                print();
+                break;
+            default:
+                cout << "You entered an invalid character!" << endl;
+        }
+    } while(ch != 'T');
     // following three lines is how it was written in file; not sure if thats how it's suupposed to be:
     // }while(ch != 'T');
     // return EXIT_SUCCESS;
     // }
 
-    // Revised three lines; makes more sense this way
-    while(ch != 'T');
-        return EXIT_SUCCESS;
+    // the do-while is kind of weird, i think its something like thiis so its like do____ while (condition LOL)
+
+    return EXIT_SUCCESS;
 }
+
 
 
 int main(int argc, char *argv[]) {
@@ -458,7 +474,7 @@ int main(int argc, char *argv[]) {
     if(processMgrPid == 0) {
         // The process manager process is running.
         // Close the unused write end of the pipe for the process manager 
-        process.close(pipeDescriptors[1]);
+       close(pipeDescriptors[1]);
         
         // Run the process manager.
         result = runProcessManager(pipeDescriptors[0]);
