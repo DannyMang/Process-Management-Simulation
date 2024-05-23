@@ -185,16 +185,14 @@ void schedule() {
     // 3. If we were able to get a new process to run:
     //      a. Mark the processing as running (update the new process's PCB state)
     //      b. Update the CPU structure with the PCB entry details (program, program counter, value, etc.)
-    else{ 
-        int new_process = readyState.front();
-        readyState.pop_front();
-        pcbEntry[new_process].state = STATE_RUNNING;
+    int new_process = readyState.front();
+    readyState.pop_front();
+    pcbEntry[new_process].state = STATE_RUNNING;
 
-        cpu.pProgram = &(pcbEntry[new_process].program);
-        cpu.programCounter = pcbEntry[new_process].programCounter;
-        cpu.value = pcbEntry[new_process].value;
-        runningState = new_process;
-    }
+    cpu.pProgram = &(pcbEntry[new_process].program);
+    cpu.programCounter = pcbEntry[new_process].programCounter;
+    cpu.value = pcbEntry[new_process].value;
+    runningState = new_process;
 }
 
 
@@ -238,7 +236,7 @@ void end() {
     PcbEntry &runningProcess = pcbEntry[runningState];
 
     // 2. Update the cumulative time difference (increment it by timestamp + 1 - start time of the process)
-   cumulativeTimeDiff += timestamp + 1 - runningProcess.startTime;
+    cumulativeTimeDiff += timestamp + 1 - runningProcess.startTime;
 
     // 3. Increment the number of terminated processes
     runningProcess.state = STATE_TERMINATED;
@@ -393,7 +391,67 @@ void unblock() {
 
 // Implement the P command
 void print() {
-    cout << "Print command is not implemented until iLab 3" << endl;
+    printf("\nRUNNING PROCESS:\n");
+    if (runningState != -1) {
+        PcbEntry *runningProcess = &pcbEntry[runningState];
+        printf("%d, %d, %u, %d, %u, %u\n", 
+               runningProcess->processId, 
+               runningProcess->parentProcessId, 
+               runningProcess->priority, 
+               runningProcess->value, 
+               runningProcess->startTime, 
+               runningProcess->timeUsed);
+    } else {
+        printf("None\n");
+    }
+
+    printf("\nBLOCKED PROCESSES:\n");
+    if (!blockedState.empty()) {
+        printf("Queue of blocked processes:\n");
+        for (size_t i = 0; i < blockedState.size(); ++i) {
+            int pid = blockedState[i];
+            PcbEntry *blockedProcess = &pcbEntry[pid];
+            printf("%d, %d, %u, %d, %u, %u\n", 
+                   blockedProcess->processId, 
+                   blockedProcess->parentProcessId, 
+                   blockedProcess->priority, 
+                   blockedProcess->value, 
+                   blockedProcess->startTime, 
+                   blockedProcess->timeUsed);
+        }
+    } else {
+        printf("None\n");
+    }
+
+    printf("\nPROCESSES READY TO EXECUTE:\n");
+    if (!readyState.empty()) {
+        unsigned int priorityQueues[10][10]; // max 10 priorities with max 10 processes each
+        size_t priorityCounts[10] = {0};
+        
+        for (size_t i = 0; i < readyState.size(); ++i) {
+            int pid = readyState[i];
+            unsigned int priority = pcbEntry[pid].priority;
+            priorityQueues[priority][priorityCounts[priority]++] = pid;
+        }
+        
+        for (unsigned int priority = 0; priority < 10; ++priority) {
+            if (priorityCounts[priority] > 0) {
+                printf("Queue of processes with priority %u:\n", priority);
+                for (size_t i = 0; i < priorityCounts[priority]; ++i) {
+                    int pid = priorityQueues[priority][i];
+                    PcbEntry *readyProcess = &pcbEntry[pid];
+                    printf("%d, %d, %d, %u, %u\n", 
+                           readyProcess->processId, 
+                           readyProcess->parentProcessId, 
+                           readyProcess->value, 
+                           readyProcess->startTime, 
+                           readyProcess->timeUsed);
+                }
+            }
+        }
+    } else {
+        printf("None\n");
+    }
 }
 
 
