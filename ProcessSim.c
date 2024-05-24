@@ -218,7 +218,6 @@ void block() {
     }
 
     // - Note that a new process will be chosen to run later (via the Q command code calling the schedule() function)
-
 }
 
 
@@ -460,6 +459,12 @@ void print() {
 }
 
 
+void calculateTurnaroundTime() {
+    // Calculate the average turnaround time
+    int avgTurnaroundTime = cumulativeTimeDiff / numTerminatedProcesses;
+    cout << "Average turnaround time: " << avgTurnaroundTime << endl;
+}
+
 // Function that implements the process manager
 int runProcessManager(int fileDescriptor) {
     //vector<PcbEntry> pcbTable;
@@ -505,6 +510,10 @@ int runProcessManager(int fileDescriptor) {
                 break;
             case 'P':
                 print();
+                break;
+            case 'T':
+                // Calculate the average turnaround time
+                calculateTurnaroundTime();
                 break;
             default:
                 cout << "You entered an invalid character!" << endl;
