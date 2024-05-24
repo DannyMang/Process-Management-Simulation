@@ -37,15 +37,15 @@ enum State {
 
 class PcbEntry {
 public:
-    int processId;
+    int processId = -1;
     int parentProcessId;
     vector<Instruction> program;
-    unsigned int programCounter;
-    int value;
-    unsigned int priority;
+    unsigned int programCounter = 0;
+    int value = 0;
+    unsigned int priority = 0;
     State state;
-    unsigned int startTime;
-    unsigned int timeUsed;
+    unsigned int startTime = 0;
+    unsigned int timeUsed = 0;
 };
 
 
@@ -260,6 +260,10 @@ void fork(int value) {
             break;
         }
     }
+    if (freePCB == -1){
+        cout << "No free PCBs available." << endl;
+        return;
+    }
 
     // 2. Get the PCB entry for the current running process
     PcbEntry &runningProcess = pcbEntry[runningState];
@@ -325,43 +329,42 @@ void quantum() {
     Instruction instruction;
     cout << "In quantum";
 
-    if(runningState == -1) {
-        cout << "No processes are running" << endl;
-        ++timestamp;
-        return;
-    }
-
     if(cpu.programCounter < cpu.pProgram->size()) {
         instruction = (*cpu.pProgram)[cpu.programCounter];
         ++cpu.programCounter;
     }
     else {
-        cout << "End of program reached without E operation" << endl;
+        cout << " End of program reached without E operation" << endl;
         instruction.operation = 'E';
     }
     switch (instruction.operation) {
         case 'S':
             set(instruction.intArg);
-            cout << "instruction S " << instruction.intArg << endl;
+            cout << " instruction S " << instruction.intArg << endl;
             break;
         case 'A':
             add(instruction.intArg);
-            cout << "instruction A " << instruction.intArg << endl;
+            cout << " instruction A " << instruction.intArg << endl;
             break;
         case 'D':
             decrement(instruction.intArg);
+            cout << " instruction D " << instruction.intArg << endl;
             break;
         case 'B':
             block();
+            cout << " instruction B, block " << endl;
             break;
         case 'E':
             end();
+            cout << " instruction E, end " << endl;
             break;
         case 'F':
             fork(instruction.intArg);
+            cout << " instruction F, fork " << endl;
             break;
         case 'R':
             replace(instruction.stringArg);
+            cout << " instruction R, replace " << endl;
             break;
     }
 
@@ -391,6 +394,8 @@ void unblock() {
 
 // Implement the P command
 void print() {
+    printf("CURRENT TIME: %u\n", timestamp);
+
     printf("\nRUNNING PROCESS:\n");
     if (runningState != -1) {
         PcbEntry *runningProcess = &pcbEntry[runningState];
@@ -427,13 +432,13 @@ void print() {
     if (!readyState.empty()) {
         unsigned int priorityQueues[10][10]; // max 10 priorities with max 10 processes each
         size_t priorityCounts[10] = {0};
-        
+
         for (size_t i = 0; i < readyState.size(); ++i) {
             int pid = readyState[i];
             unsigned int priority = pcbEntry[pid].priority;
             priorityQueues[priority][priorityCounts[priority]++] = pid;
         }
-        
+
         for (unsigned int priority = 0; priority < 10; ++priority) {
             if (priorityCounts[priority] > 0) {
                 printf("Queue of processes with priority %u:\n", priority);
